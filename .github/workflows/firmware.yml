@@ -1,4 +1,4 @@
-name: Build scale-key firmware
+name: Build feature firmware
 
 on:
   push:
@@ -28,7 +28,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  SLOOP_RELEASE: 2.8.4-scale2
+  SLOOP_RELEASE: 2.8.4-entry1
 
 jobs:
   firmware:
@@ -53,12 +53,12 @@ jobs:
         run: |
           mkdir -p build/ci
           sh tools/ci_build_deps.sh build/deps 2>&1 | tee build/ci/dependencies.log
-      - name: Scale-key and UI host tests
+      - name: Note-entry, scale-key and UI host tests
         env:
           CC: clang
         run: |
           python3 tests/build_release_test.py 2>&1 | tee build/ci/release-label-tests.log
-          sh tests/run_scale_lights_tests.sh 2>&1 | tee build/ci/host-tests.log
+          sh tests/run_note_entry_tests.sh 2>&1 | tee build/ci/host-tests.log
       - name: Compile and validate installable firmware
         run: |
           ulimit -n 8192
