@@ -317,8 +317,12 @@ def release_metadata(release):
     if not m:
         raise ValueError("use X.Y or X.Y.Z, optionally -suffix; X and Y must be one digit each")
     version = release.upper()
-    if "BETA" not in version:
+    # Keep the legacy two-component labels; full patch labels are already explicit,
+    # and an extra suffix could truncate the editor's 24-byte "FELUCCA ..." INFO.
+    if release.split("-", 1)[0].count(".") == 1 and "BETA" not in version:
         version += " BETA"
+    if len("FELUCCA " + version) > 24:
+        raise ValueError("version label exceeds the editor INFO limit; use a shorter suffix")
     return "FM-1_9" + m[1] + m[2], version, f"felucca-{release}.fwsc"
 
 
