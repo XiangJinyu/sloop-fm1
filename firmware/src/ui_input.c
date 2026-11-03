@@ -88,6 +88,33 @@ UI_SMALL static uint32_t scale_keys(uint32_t root_only)   /* SEL: the keys in th
     return m;
 }
 
+/* SCALE backlight follows the selected part's playable pitches, not SEL's global key selector.
+ * It is visual only: kb_map owns octave, transpose, SNAP / WHITE and chord-key mapping. In a
+ * function layer the keys have another job; GM KIT (and SLICE) are pads, not pitched keys. */
+UI_SMALL static int lights_scale_on(void)
+{
+    return lights_lvl && lights_keys == KEYS_SCALE && ui.layer == LY_PLAY && !kb_grid && kb_scaled(TSEL);
+}
+
+UI_SMALL static uint32_t lights_scale_mask(uint32_t root_only)
+{
+    const track_t *t = TSEL;
+    uint32_t k, m = 0, root, mask;
+    if (!lights_scale_on())
+        return 0u;
+    root = (uint32_t)t->p[P_ROOT] % 12u;
+    mask = t->p[P_CHORD] && !t->p[P_SCALE] ? SCALE_MASK[2] : scale_mask(t);
+    for (k = 0; k < 27u; k++) {
+        uint32_t note = kb_map(t, k), d;
+        if (note == KB_SILENT)
+            continue;
+        d = (note + 12u - root) % 12u;
+        if ((mask >> d) & 1u && (!root_only || !d))
+            m |= 1u << k;
+    }
+    return m;
+}
+
 UI_SMALL static uint32_t erase_lanes(const track_t *t)   /* EDIT erase, drum track: the sounds the pattern holds */
 {
     uint32_t i, m = 0;
@@ -162,7 +189,7 @@ UI_SMALL static uint32_t keys_lit(void)
         return m | fm1_in.notes | 1u << drum_black_key(drum_lane);   /* (2.7.1) its sound's black key */
     }
     m = fm1_in.notes;
-    if (is_drum(t) || lights_notes)                /* the drum track: each hit lights its key; NOTES: the synths too */
+    if (is_drum(t) || lights_notes || lights_scale_on())   /* SCALE keeps sounding notes above its dim hints too */
         m |= keys_sounding(t);
     return m;
 }
@@ -193,16 +220,18 @@ UI_SMALL static uint32_t keys_notes_dim(void)
 UI_SMALL static uint32_t keys_guide(void)
 {
     if (ui.layer == LY_PLAY && !is_drum(TSEL))
-        return 0u;
+        return lights_scale_mask(1);             /* roots: 4 us glow, above the 0.5..2 us scale backlight */
     return 1u << key_of_white(0) | 1u << key_of_white(4) | 1u << key_of_white(8) | 1u << key_of_white(12);
 }
 
-/* the keys the backlight lights (menu KEYS): the Cs, every white key, or every key; bit k = key k (0 = F3) */
+/* the keys the backlight lights (menu KEYS); bit k = key k (0 = F3) */
 UI_SMALL static uint32_t lights_keys_mask(void)
 {
     uint32_t k, m = 0;
     if (!lights_lvl || !lights_keys)
         return 0u;
+    if (lights_keys == KEYS_SCALE)
+        return lights_scale_mask(0);
     for (k = 0; k < 27u; k++) {
         uint32_t pc = (53u + k) % 12u;             /* key 0 = F3 (53) */
         if (lights_keys == KEYS_ALL || (lights_keys == KEYS_C ? pc == 0u : ((0xAB5u >> pc) & 1u) != 0u))   /* 0xAB5: C D E F G A B */
