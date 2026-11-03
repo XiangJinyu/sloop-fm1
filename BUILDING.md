@@ -43,8 +43,9 @@ On Linux x86-64 the toolchain runs natively and Docker is not needed.
 ## Fork builds in GitHub Actions
 
 The **Build scale-key firmware** workflow builds this fork's scale-key variant on
-Linux x86-64. It runs on code pushes to `main` or `codex/scale-key-lights`, on pull
-requests, and by manual dispatch. No FM-1 is connected to CI and nothing is flashed.
+Linux x86-64. It runs on code pushes to `main`, on pull requests, and by manual dispatch.
+Feature branches are built through their pull request so one push does not start
+two competing copies of the same build. No FM-1 is connected to CI and nothing is flashed.
 
 `tools/ci_build_deps.sh build/deps` downloads the JieLi **20260730.1** Linux
 toolchain and the three files from **AC79NN_SDK_V1.2.1_2023-12-13**, from the

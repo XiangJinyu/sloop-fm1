@@ -2,7 +2,7 @@ name: Build scale-key firmware
 
 on:
   push:
-    branches: [main, codex/scale-key-lights]
+    branches: [main]
     paths:
       - firmware/**
       - tests/**
