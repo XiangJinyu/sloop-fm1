@@ -311,20 +311,29 @@ def mmio_check():
     return errors
 
 
+def release_metadata(release):
+    """Keep the bootloader's 9XY identity while allowing full patch-version labels."""
+    m = re.fullmatch(r"([0-9])\.([0-9])(?:\.[0-9]+)?(-[A-Za-z0-9]+)?", release)
+    if not m:
+        raise ValueError("use X.Y or X.Y.Z, optionally -suffix; X and Y must be one digit each")
+    version = release.upper()
+    if "BETA" not in version:
+        version += " BETA"
+    return "FM-1_9" + m[1] + m[2], version, f"felucca-{release}.fwsc"
+
+
 def main():
     global PRODUCT, VERSION
     ap = argparse.ArgumentParser()
-    ap.add_argument("--release", metavar="X.Y", help="release build: identity FM-1_9XY, version string X.Y")
+    ap.add_argument("--release", metavar="X.Y[.Z][-suffix]", help="release build: identity FM-1_9XY, full version label")
     ap.add_argument("--sdk", type=Path, help="JieLi AC79 SDK checkout (default: $AC79_SDK)")
     a = ap.parse_args()
     name = "felucca.fwsc"
-    if a.release:                   # one digit each: the identity has room for two
-        m = re.fullmatch(r"(\d)\.(\d)(-[A-Za-z0-9]+)?", a.release)
-        if not m:
-            raise SystemExit(f"--release {a.release}: use X.Y or X.Y-suffix, one digit each")
-        PRODUCT = "FM-1_9" + m[1] + m[2]
-        VERSION = a.release.upper() if "BETA" in a.release.upper() else a.release.upper() + " BETA"
-        name = f"felucca-{a.release}.fwsc"
+    if a.release:
+        try:
+            PRODUCT, VERSION, name = release_metadata(a.release)
+        except ValueError as error:
+            raise SystemExit(f"--release {a.release}: {error}") from error
     fm1pkg_make.SDK = a.sdk
     for rel, sha in SDK_SHA256.items():          # fail early without the SDK
         if hashlib.sha256(fm1pkg_make.sdk_file(rel)).hexdigest() != sha:

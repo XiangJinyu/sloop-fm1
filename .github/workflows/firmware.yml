@@ -1,0 +1,109 @@
+name: Build scale-key firmware
+
+on:
+  push:
+    branches: [main, codex/scale-key-lights]
+    paths:
+      - firmware/**
+      - tests/**
+      - tools/**
+      - assets/**
+      - web/**
+      - .github/workflows/firmware.yml
+  pull_request:
+    paths:
+      - firmware/**
+      - tests/**
+      - tools/**
+      - assets/**
+      - web/**
+      - .github/workflows/firmware.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: firmware-${{ github.event.pull_request.head.ref || github.ref_name }}
+  cancel-in-progress: true
+
+env:
+  SLOOP_RELEASE: 2.8.4-scale1
+
+jobs:
+  firmware:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '22'
+      - name: Python image-generation dependency
+        run: python3 -m pip install 'Pillow==11.3.0'
+      - name: Verified JieLi toolchain and SDK files
+        run: |
+          mkdir -p build/ci
+          sh tools/ci_build_deps.sh build/deps 2>&1 | tee build/ci/dependencies.log
+      - name: Scale-key and UI host tests
+        env:
+          CC: clang
+        run: |
+          python3 tests/build_release_test.py 2>&1 | tee build/ci/release-label-tests.log
+          sh tests/run_scale_lights_tests.sh 2>&1 | tee build/ci/host-tests.log
+      - name: Compile and validate installable firmware
+        run: |
+          ulimit -n 8192
+          "$JIELI_TOOLCHAIN/pi32v2/bin/clang" --version | tee build/ci/toolchain.log
+          python3 tools/build.py --release "$SLOOP_RELEASE" 2>&1 | tee build/ci/build.log
+      - name: Package integrity and installer tests (no hardware)
+        run: |
+          python3 - <<'PY' | tee build/ci/package.log
+          import os
+          import sys
+          from pathlib import Path
+          sys.path.insert(0, 'tools')
+          from fm1_install import load_package
+          package = Path('build') / f"felucca-{os.environ['SLOOP_RELEASE']}.fwsc"
+          product, image = load_package(package, force=False)
+          print(f'PACKAGE_VALIDATED: {product}, {len(image)} logical bytes')
+          PY
+          clang -O1 -Wall -Wno-unused-function -o build/ci/ota_test tests/ota_test.c
+          build/ci/ota_test "build/felucca-$SLOOP_RELEASE.fwsc" 2>&1 | tee build/ci/ota-test.log
+          python3 tests/install_test.py 2>&1 | tee build/ci/installer-test.log
+          sha256sum "build/felucca-$SLOOP_RELEASE.fwsc" build/felucca.bin build/loader/ota.bin > build/ci/SHA256SUMS
+          git rev-parse HEAD > build/ci/commit.txt
+      - name: Installable package and build evidence
+        if: success()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: sloop-${{ env.SLOOP_RELEASE }}-${{ github.sha }}
+          retention-days: 14
+          if-no-files-found: error
+          path: |
+            build/felucca-${{ env.SLOOP_RELEASE }}.fwsc
+            build/felucca.bin
+            build/felucca.elf
+            build/felucca.dis
+            build/loader/ota.bin
+            build/ATTRIBUTION.txt
+            build/deps/manifest.txt
+            build/ci/*.log
+            build/ci/SHA256SUMS
+            build/ci/commit.txt
+      - name: Failure diagnostics
+        if: failure()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: scale-firmware-failure-${{ github.run_id }}-${{ github.run_attempt }}
+          retention-days: 7
+          if-no-files-found: ignore
+          path: build/ci/*.log
