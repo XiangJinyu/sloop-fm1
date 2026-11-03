@@ -28,7 +28,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  SLOOP_RELEASE: 2.8.4-scale1
+  SLOOP_RELEASE: 2.8.4-scale2
 
 jobs:
   firmware:

@@ -56,13 +56,13 @@ The script prints `JIELI_TOOLCHAIN` and `AC79_SDK`, and sets them through
 the extracted compiler still needs Linux x86-64, or Docker on macOS.
 
 CI runs `tests/run_scale_lights_tests.sh`, builds with
-`python3 tools/build.py --release 2.8.4-scale1`, then validates the package using
+`python3 tools/build.py --release 2.8.4-scale2`, then validates the package using
 the installer parser, simulated OTA test and installer tests. The target build
 checks the flash size, RAM regions, pool headroom and register-access boundaries.
 This focused CI is not a claim that the entire DSP/CPU/TSan regression suite ran;
 the full suite remains available below.
 
-A successful run uploads `sloop-2.8.4-scale1-<commit>` under **Actions → run →
+A successful run uploads `sloop-2.8.4-scale2-<commit>` under **Actions → run →
 Artifacts**. It contains the `.fwsc`, app/loader binaries, ELF and disassembly,
 dependency manifest, checksums and test/build logs. The custom version remains
 distinct from the upstream 2.8.4 release. Download and unzip that artifact before

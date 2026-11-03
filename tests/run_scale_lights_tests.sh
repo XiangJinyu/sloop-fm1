@@ -23,7 +23,7 @@ generate gen_samples.py felucca_samples.h
 generate gen_drumkits.py felucca_drumkits.h
 generate gen_logo.py sloop_logo.h
 
-for test in scale_lights_test scale_test ui_pages_test; do
+for test in led_pwm_test scale_lights_test scale_test ui_pages_test len_test; do
     "$CC" -O2 -w -Ibuild/gen -Ifirmware/src -Ifirmware/hal "tests/$test.c" -lm -o "$OUT/$test"
     if ! "$OUT/$test" "$OUT" > "$OUT/$test.log" 2>&1; then
         cat "$OUT/$test.log"

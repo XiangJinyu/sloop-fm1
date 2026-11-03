@@ -173,17 +173,19 @@ static void overlays(void)
         TSEL->v[0].active = TSEL->v[0].gate = 1;
         TSEL->v[0].stage = 1; TSEL->v[0].note = 64;                     /* sequence/held E4, NOTES OFF */
         ui_leds();
-        full = led_keys(fm1_led); dim = led_keys(fm1_led_dim); back = led_keys(fm1_led_bg);
+        full = led_keys(fm1_led); dim = led_keys(fm1_led_root); back = led_keys(fm1_led_scale);
         assert(full == ((1u << 7) | (1u << 1) | (1u << 11)));
         assert(dim == (1u << 19));                                    /* other root stays brighter */
         assert(back == (white_mask() & ~full & ~dim));
         assert(!(full & dim) && !(full & back) && !(dim & back));
+        assert(led_keys(fm1_led_dim) == 0u && led_keys(fm1_led_bg) == 0u);
+        assert(fm1_led_scale_level == level);
         assert(fm1_led_bg_ns == LIGHTS_NS[level] && fm1_led_bg_ns < 4000u);
     }
     /* Release and out-of-view activity must leave the hints intact. */
     fm1_in.notes = 0; TSEL->v[0].gate = 0; ui_leds();
     assert(led_keys(fm1_led) == 0);
-    assert(led_keys(fm1_led_dim) == ((1u << 7) | (1u << 19)));
+    assert(led_keys(fm1_led_root) == ((1u << 7) | (1u << 19)));
     for (layer = LY_FX; layer < LY_COUNT; layer++) {
         uint8_t full[FM1_NCOL], dim[FM1_NCOL], back[FM1_NCOL];
         ui.layer = ly_lock = (uint8_t)layer;
@@ -191,6 +193,7 @@ static void overlays(void)
         memcpy(full, fm1_led, sizeof full); memcpy(dim, fm1_led_dim, sizeof dim); memcpy(back, fm1_led_bg, sizeof back);
         lights_keys = KEYS_SCALE; ui_leds();
         assert(lights_keys_mask() == 0 && lights_scale_mask(1) == 0);
+        assert(fm1_led_scale_level == 0u && led_keys(fm1_led_scale) == 0u && led_keys(fm1_led_root) == 0u);
         assert(!memcmp(full, fm1_led, sizeof full) && !memcmp(dim, fm1_led_dim, sizeof dim) &&
                !memcmp(back, fm1_led_bg, sizeof back));                  /* same layer, no new scale LEDs */
     }
@@ -228,6 +231,8 @@ static void settings_and_selection(void)
     assert(lights_keys == KEYS_OFF);                                    /* malformed mode stays safe */
     lights_keys = KEYS_SCALE; lights_lvl = LIGHTS_OFF;
     assert(lights_keys_mask() == 0 && keys_guide() == 0);
+    ui_leds();
+    assert(fm1_led_scale_level == 0u);
     ui.menu = 1; ui.menu_sel = MI_KEYS; lights_keys = KEYS_ALL;
     mi_set(MI_KEYS, 1);
     assert(lights_keys == KEYS_SCALE && lights_lvl == LIGHTS_LOW);

@@ -13,7 +13,7 @@ Free and open source (GPL-3.0), based on <a href="https://github.com/hugelton/Fe
 <a href="../../issues">Report a bug</a>
 </p>
 
-**This fork adds persistent scale-key lights to SLOOP 2.8.4.** Set HOME menu → LIGHTS → KEYS → **SCALE**: in-scale keys glow, roots are brighter, and played notes remain brightest. It follows the selected synth track without remapping the keyboard. [中文使用说明](docs/scale-key-lights.md) · [Build this fork](BUILDING.md#fork-builds-in-github-actions). The upstream installer linked above installs upstream SLOOP; use this fork's built package for the new feature.
+**This fork adds persistent scale-key lights to SLOOP 2.8.4.** Set HOME menu → LIGHTS → KEYS → **SCALE**: in-scale keys glow, roots are brighter, and played notes remain brightest. It follows the selected synth track without remapping the keyboard. SCALE2 makes the hints visible using distributed scan-frame duty (25–50% for scale notes), retaining the input scan timing and all original SEL functions. [中文使用说明](docs/scale-key-lights.md) · [Build this fork](BUILDING.md#fork-builds-in-github-actions). The upstream installer linked above installs upstream SLOOP; use this fork's built package for the new feature.
 
 ---
 

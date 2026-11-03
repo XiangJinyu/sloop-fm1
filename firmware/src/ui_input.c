@@ -220,7 +220,7 @@ UI_SMALL static uint32_t keys_notes_dim(void)
 UI_SMALL static uint32_t keys_guide(void)
 {
     if (ui.layer == LY_PLAY && !is_drum(TSEL))
-        return lights_scale_mask(1);             /* roots: 4 us glow, above the 0.5..2 us scale backlight */
+        return lights_scale_mask(1);             /* roots: brighter scan-frame PWM, assigned by ui_leds */
     return 1u << key_of_white(0) | 1u << key_of_white(4) | 1u << key_of_white(8) | 1u << key_of_white(12);
 }
 
@@ -243,7 +243,8 @@ UI_SMALL static uint32_t lights_keys_mask(void)
 UI_SMALL static void ui_leds(void)
 {
     uint8_t nl[FM1_NCOL] = {0}, dl[FM1_NCOL] = {0}, bl[FM1_NCOL] = {0};
-    uint32_t k, c, keys, guide, back;
+    uint8_t sl[FM1_NCOL] = {0}, rl[FM1_NCOL] = {0};
+    uint32_t k, c, keys, guide, back, scale = lights_scale_on();
     static uint8_t ready;
     if (!ready) {
         led_pos_init();
@@ -270,8 +271,8 @@ UI_SMALL static void ui_leds(void)
     back = lights_keys_mask() & ~keys & ~guide;
     for (k = 0; k < 27u; k++) {
         led_put(nl, 14u + k, (int)((keys >> k) & 1u));
-        led_put(dl, 14u + k, (int)((guide >> k) & 1u));
-        led_put(bl, 14u + k, (int)((back >> k) & 1u));
+        led_put(scale ? rl : dl, 14u + k, (int)((guide >> k) & 1u));
+        led_put(scale ? sl : bl, 14u + k, (int)((back >> k) & 1u));
     }
     if (lights_lvl)                                /* menu LIGHTS: every button glows, the lit ones stay full */
         for (k = 0; k < NB; k++)
@@ -280,8 +281,11 @@ UI_SMALL static void ui_leds(void)
         fm1_led[c] = nl[c];
         fm1_led_dim[c] = dl[c];
         fm1_led_bg[c] = (uint8_t)(bl[c] & ~nl[c]);
+        fm1_led_scale[c] = sl[c];
+        fm1_led_root[c] = rl[c];
     }
     fm1_led_bg_ns = LIGHTS_NS[lights_lvl % LIGHTS_N];
+    fm1_led_scale_level = (uint8_t)(scale ? lights_lvl : 0u);
 }
 
 /* ---------------------------------------------------------- input --- */
