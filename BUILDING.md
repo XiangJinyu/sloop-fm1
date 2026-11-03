@@ -40,6 +40,34 @@ Set `SLOOP_WSL_DISTRO` (default `Ubuntu`) and `SLOOP_TOOLCHAIN` (a Linux path, d
 
 On Linux x86-64 the toolchain runs natively and Docker is not needed.
 
+## Fork builds in GitHub Actions
+
+The **Build scale-key firmware** workflow builds this fork's scale-key variant on
+Linux x86-64. It runs on code pushes to `main`, on pull requests, and by manual dispatch.
+Feature branches are built through their pull request so one push does not start
+two competing copies of the same build. No FM-1 is connected to CI and nothing is flashed.
+
+`tools/ci_build_deps.sh build/deps` downloads the JieLi **20260730.1** Linux
+toolchain and the three files from **AC79NN_SDK_V1.2.1_2023-12-13**, from the
+vendor's package storage and Gitee repository. The archive and each SDK file must
+match their pinned SHA-256; a mismatch fails instead of using changed bytes.
+The script prints `JIELI_TOOLCHAIN` and `AC79_SDK`, and sets them through
+`GITHUB_ENV` when run in Actions. It requires Python 3, curl and xz-capable tar;
+the extracted compiler still needs Linux x86-64, or Docker on macOS.
+
+CI runs `tests/run_scale_lights_tests.sh`, builds with
+`python3 tools/build.py --release 2.8.4-scale2`, then validates the package using
+the installer parser, simulated OTA test and installer tests. The target build
+checks the flash size, RAM regions, pool headroom and register-access boundaries.
+This focused CI is not a claim that the entire DSP/CPU/TSan regression suite ran;
+the full suite remains available below.
+
+A successful run uploads `sloop-2.8.4-scale2-<commit>` under **Actions → run →
+Artifacts**. It contains the `.fwsc`, app/loader binaries, ELF and disassembly,
+dependency manifest, checksums and test/build logs. The custom version remains
+distinct from the upstream 2.8.4 release. Download and unzip that artifact before
+using the installer; do not pass the artifact ZIP to the FM-1 installer.
+
 ## Build
 
 ```
